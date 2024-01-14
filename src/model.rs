@@ -1,18 +1,20 @@
 use serde::{Deserialize, Serialize};
 
-/// May be possible to do both mouse and keyboard functions at the same time? I'd need to see how the layout would work.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub(crate) enum Action {
-    Mouse(MouseFunction),
-    Keyboard(KeyboardFunction),
-    Hypershift,
-    Disable,
-}
-
 #[derive(Deserialize, Serialize)]
 pub(crate) struct Function {
     pub(crate) button: MouseButton,
     pub(crate) action: Action,
+}
+
+/// May be possible to do both mouse and keyboard functions at the same time? I'd need to see how the layout would work.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum Action {
+    Mouse(ButtonConfig),
+    Keyboard(KeyPress),
+    Sensitivity(SensitivityFunction),
+    Hypershift,
+    Disable,
 }
 
 impl Function {
@@ -30,51 +32,16 @@ impl Function {
                 string[3] = 0x01;
                 string[4] = 0x01;
             }
-            Action::Mouse(emulate_function) => {
-                match emulate_function {
-                    MouseFunction::Button(emulate_button, interval) => {
-                        string[2] = 0x01;
-                        string[3] = 0x01;
-                        string[4] = *emulate_button as _;
-                        if *interval > 0 {
-                            string[2] = 0x0e;
-                            string[3] = 0x03;
-                            let data = interval.to_be_bytes();
-                            string[5] = data[0];
-                            string[6] = data[1];
-                        }
-                    }
-                    MouseFunction::Sensitivity(s_func) => {
-                        string[2] = 0x06;
-                        match s_func {
-                            SensitivityFunction::Clutch(x, y) => {
-                                let x_val = x.to_be_bytes();
-                                let y_val = y.to_be_bytes();
-                                string[3] = 0x05;
-                                string[4] = 0x05;
-                                string[5] = x_val[0];
-                                string[6] = x_val[1];
-                                string[7] = y_val[0];
-                                string[8] = y_val[1];
-                            }
-                            SensitivityFunction::CycleUpStage => {
-                                string[3] = 0x01;
-                                string[4] = 0x06;
-                            }
-                            SensitivityFunction::CycleDownStage => {
-                                string[3] = 0x01;
-                                string[4] = 0x07;
-                            }
-                            SensitivityFunction::StageUp => {
-                                string[3] = 0x01;
-                                string[4] = 0x01;
-                            }
-                            SensitivityFunction::StageDown => {
-                                string[3] = 0x01;
-                                string[4] = 0x02;
-                            }
-                        }
-                    }
+            Action::Mouse(emulate_button) => {
+                string[2] = 0x01;
+                string[3] = 0x01;
+                string[4] = emulate_button.button as _;
+                if emulate_button.interval_ms > 0 {
+                    string[2] = 0x0e;
+                    string[3] = 0x03;
+                    let data = emulate_button.interval_ms.to_be_bytes();
+                    string[5] = data[0];
+                    string[6] = data[1];
                 }
             }
             Action::Keyboard(keyboard_function) => {
@@ -93,15 +60,49 @@ impl Function {
                     string[7] = data[1];
                 }
             }
+            Action::Sensitivity(s_func) => {
+                string[2] = 0x06;
+                match s_func {
+                    SensitivityFunction::Clutch(sc) => {
+                        let x_val = sc.x.to_be_bytes();
+                        let y_val = sc.y.to_be_bytes();
+                        string[3] = 0x05;
+                        string[4] = 0x05;
+                        string[5] = x_val[0];
+                        string[6] = x_val[1];
+                        string[7] = y_val[0];
+                        string[8] = y_val[1];
+                    }
+                    SensitivityFunction::CycleUpStage => {
+                        string[3] = 0x01;
+                        string[4] = 0x06;
+                    }
+                    SensitivityFunction::CycleDownStage => {
+                        string[3] = 0x01;
+                        string[4] = 0x07;
+                    }
+                    SensitivityFunction::StageUp => {
+                        string[3] = 0x01;
+                        string[4] = 0x01;
+                    }
+                    SensitivityFunction::StageDown => {
+                        string[3] = 0x01;
+                        string[4] = 0x02;
+                    }
+                }
+            }
         }
         string
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub(crate) enum MouseFunction {
-    Button(MouseButton, u16), // Emulate a regular mouse button. Repeat action every N milliseconds. 0 for no repetition.
-    Sensitivity(SensitivityFunction),
+pub(crate) struct ButtonConfig {
+    button: MouseButton,
+    /// Repeat this action every N milliseconds. Basically turbo, though with a more accurate description of what the mouse actually does.
+    /// Examples: 50 repeats 20 times per second, 1000 repeats once every second, 1 repeats 1000 times per second. Max value here is 65535...if you wanted to for some reason...
+    #[serde(default, skip_serializing_if = "u16::is_default")]
+    interval_ms: u16,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -133,8 +134,14 @@ pub(crate) enum MouseButton {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub(crate) struct SensitivityClutch {
+    x: u16,
+    y: u16,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub(crate) enum SensitivityFunction {
-    Clutch(u16, u16), // Set specific sensitivity X, Y axis DPI values. Synapse allows 100 to 30000.
+    Clutch(SensitivityClutch), // Set specific sensitivity X, Y axis DPI values. Synapse allows 100 to 30000.
     CycleUpStage,
     CycleDownStage,
     StageUp,
@@ -152,14 +159,14 @@ impl IsDefault for u16 {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub(crate) struct KeyboardFunction {
+pub(crate) struct KeyPress {
+    pub(crate) key: UsbKbScanCode,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) modifiers: Vec<KeyMod>,
     /// Repeat this action every N milliseconds. Basically turbo, though with a more accurate description of what the mouse actually does.
     /// Examples: 50 repeats 20 times per second, 1000 repeats once every second, 1 repeats 1000 times per second. Max value here is 65535...if you wanted to for some reason...
     #[serde(default, skip_serializing_if = "u16::is_default")]
     pub(crate) interval_ms: u16,
-    pub(crate) key: UsbKbScanCode,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub(crate) modifiers: Vec<KeyMod>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -280,8 +287,8 @@ pub(crate) enum UsbKbScanCode {
     Keypad0 = 0x62,          // and Insert
     KeypadDot = 0x63,        // and Delete
     KbNonUSBackslash = 0x64, // Non-US \ and | Note 3 and 6
-    KbApplication = 0x65,    // The key left of the right control key and opens a context menu in windows, aka "compose", Note 10
-    KbPower = 0x66,          // Note 9
+    KbApplication = 0x65, // The key left of the right control key and opens a context menu in windows, aka "compose", Note 10
+    KbPower = 0x66,       // Note 9
     KeypadEquals = 0x67,
     KbF13 = 0x68,
     KbF14 = 0x69,
@@ -406,108 +413,109 @@ pub(crate) fn generate_message(func: &Function) -> [u8; 91] {
 
 #[cfg(test)]
 mod test {
+    use super::{
+        generate_message, Action, ButtonConfig, Function, KeyMod, KeyPress, MouseButton,
+        SensitivityClutch, SensitivityFunction, UsbKbScanCode,
+    };
     use hex_literal::hex;
-    use super::{generate_message, KeyMod, KeyboardFunction, UsbKbScanCode, Function, Action, MouseButton, MouseFunction};
 
     #[test]
     fn validate_message_function() {
         let control = hex!("00001f0000000a020c010c0006010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f00");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::StageUp),
-        )};
+            action: Action::Sensitivity(SensitivityFunction::StageUp),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010c0006010200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::StageDown),
-        )};
+            action: Action::Sensitivity(SensitivityFunction::StageDown),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010c0006010600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::CycleUpStage),
-        )};
+            action: Action::Sensitivity(SensitivityFunction::CycleUpStage),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010c0006010700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000900");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::CycleDownStage),
-        )};
+            action: Action::Sensitivity(SensitivityFunction::CycleDownStage),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010c0006050575300064000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002e00");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::Clutch(30000, 100)),
-        )};
+            action: Action::Sensitivity(SensitivityFunction::Clutch(SensitivityClutch {
+                x: 30000,
+                y: 100,
+            })),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010c0006050575307530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f00");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::Clutch(30000, 30000)),
-        )};
+            action: Action::Sensitivity(super::SensitivityFunction::Clutch(SensitivityClutch {
+                x: 30000,
+                y: 30000,
+            })),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010c0006050503200320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f00");
         let test = Function {
             button: MouseButton::SenStageDown,
-            action: Action::Mouse(
-            MouseFunction::Sensitivity(super::SensitivityFunction::Clutch(800, 800)),
-        )};
+            action: Action::Sensitivity(super::SensitivityFunction::Clutch(SensitivityClutch {
+                x: 800,
+                y: 800,
+            })),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0002022235000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005900");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbGrave,
                 modifiers: vec![KeyMod::LShift, KeyMod::RShift],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0002020035000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007b00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbGrave,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202702e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![KeyMod::RShift, KeyMod::RAlt, KeyMod::RControl],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202ff2e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009f00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![
@@ -520,356 +528,342 @@ mod test {
                     KeyMod::LControl,
                     KeyMod::LGui,
                 ],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202402e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![KeyMod::RAlt],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202042e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006400");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![KeyMod::LAlt],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202102e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007000");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![KeyMod::RControl],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202202e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![KeyMod::RShift],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202022e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006200");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![KeyMod::LShift],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202002e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbEquals,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004e00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Disable };
+            action: Action::Disable,
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01400002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100");
         let test = Function {
             button: MouseButton::Side1,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014a0002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004b00");
         let test = Function {
             button: MouseButton::Side11,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014a000d040004003200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007000");
         let test = Function {
             button: MouseButton::Side11,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 50,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004a00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000202003a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007400");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbF1,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0002020045000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbF12,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0002020068000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002600");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbF13,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0002020073000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003d00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbF24,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01020002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01340002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003500");
         let test = Function {
             button: MouseButton::LScroll,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01350002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003400");
         let test = Function {
             button: MouseButton::RScroll,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01090002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800");
         let test = Function {
             button: MouseButton::UScroll,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c010a0002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b00");
         let test = Function {
             button: MouseButton::DScroll,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01030002020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200");
         let test = Function {
             button: MouseButton::MClick,
-            action: Action::Keyboard(
-            KeyboardFunction {
+            action: Action::Keyboard(KeyPress {
                 interval_ms: 0,
                 key: UsbKbScanCode::KbA,
                 modifiers: vec![],
-            },
-        )};
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014a0001010400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004b00");
         let test = Function {
             button: MouseButton::Side11,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::Mouse4, 0),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::Mouse4,
+                interval_ms: 0,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b0001010500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004b00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::Mouse5, 0),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::Mouse5,
+                interval_ms: 0,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c014b000e030503e8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ad00");
         let test = Function {
             button: MouseButton::Side12,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::Mouse5, 1000),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::Mouse5,
+                interval_ms: 1000,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01020001010200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000500");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 0),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::RClick,
+                interval_ms: 0,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c0102000e030203e8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e300");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 1000),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::RClick,
+                interval_ms: 1000,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c0102000e030201f4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fd00");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 500),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::RClick,
+                interval_ms: 500,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c0102000e0302014d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004400");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 333),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::RClick,
+                interval_ms: 333,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c0102000e030200fa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f200");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 250),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::RClick,
+                interval_ms: 250,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c0102000e030200320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a00");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 50),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::RClick,
+                interval_ms: 50,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c01020001010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600");
         let test = Function {
             button: MouseButton::RClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::LClick, 0),
-        )};
-        assert_eq!(generate_message(&test), control);
-
-        let control = hex!("00001f0000000a020c01010001010200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600");
-        let test = Function {
-            button: MouseButton::LClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::RClick, 0),
-        )};
-        assert_eq!(generate_message(&test), control);
-
-        let control = hex!("00001f0000000a020c01010001010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000500");
-        let test = Function {
-            button: MouseButton::LClick,
-            action: Action::Mouse(
-            MouseFunction::Button(MouseButton::LClick, 0),
-        )};
+            action: Action::Mouse(ButtonConfig {
+                button: MouseButton::LClick,
+                interval_ms: 0,
+            }),
+        };
         assert_eq!(generate_message(&test), control);
 
         let control = hex!("00001f0000000a020c0140010c010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004800");
         let test = Function {
             button: MouseButton::Side1,
-            action: Action::Hypershift };
+            action: Action::Hypershift,
+        };
         assert_eq!(generate_message(&test), control);
     }
 }

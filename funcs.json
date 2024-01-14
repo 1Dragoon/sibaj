@@ -2,7 +2,7 @@
   {
     "button": "Side1",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF13"
       }
     }
@@ -10,7 +10,7 @@
   {
     "button": "Side2",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF14"
       }
     }
@@ -18,7 +18,7 @@
   {
     "button": "Side3",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF15"
       }
     }
@@ -26,18 +26,15 @@
   {
     "button": "Side4",
     "action": {
-      "Mouse": {
-        "Button": [
-          "Mouse5",
-          0
-        ]
+      "mouse": {
+        "button": "Mouse5"
       }
     }
   },
   {
     "button": "Side5",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF17"
       }
     }
@@ -45,7 +42,7 @@
   {
     "button": "Side6",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF18"
       }
     }
@@ -53,7 +50,7 @@
   {
     "button": "Side7",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF19"
       }
     }
@@ -61,7 +58,7 @@
   {
     "button": "Side8",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF20"
       }
     }
@@ -69,7 +66,7 @@
   {
     "button": "Side9",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF21"
       }
     }
@@ -77,18 +74,15 @@
   {
     "button": "Side10",
     "action": {
-      "Mouse": {
-        "Button": [
-          "Mouse4",
-          0
-        ]
+      "mouse": {
+        "button": "Mouse4"
       }
     }
   },
   {
     "button": "Side11",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF23"
       }
     }
@@ -96,7 +90,7 @@
   {
     "button": "Side12",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbF24"
       }
     }
@@ -104,7 +98,7 @@
   {
     "button": "Side12",
     "action": {
-      "Keyboard": {
+      "keyboard": {
         "key": "KbS",
         "modifiers": [
           "LShift",
@@ -116,20 +110,18 @@
   {
     "button": "Side11",
     "action": {
-      "Keyboard": {
-        "interval_ms": 1,
-        "key": "KbA"
+      "keyboard": {
+        "key": "KbA",
+        "interval_ms": 1
       }
     }
   },
   {
     "button": "Side9",
     "action": {
-      "Mouse": {
-        "Button": [
-          "UScroll",
-          1
-        ]
+      "mouse": {
+        "button": "UScroll",
+        "interval_ms": 1
       }
     }
   }
