@@ -1,0 +1,136 @@
+[
+  {
+    "button": "Side1",
+    "action": {
+      "Keyboard": {
+        "key": "KbF13"
+      }
+    }
+  },
+  {
+    "button": "Side2",
+    "action": {
+      "Keyboard": {
+        "key": "KbF14"
+      }
+    }
+  },
+  {
+    "button": "Side3",
+    "action": {
+      "Keyboard": {
+        "key": "KbF15"
+      }
+    }
+  },
+  {
+    "button": "Side4",
+    "action": {
+      "Mouse": {
+        "Button": [
+          "Mouse5",
+          0
+        ]
+      }
+    }
+  },
+  {
+    "button": "Side5",
+    "action": {
+      "Keyboard": {
+        "key": "KbF17"
+      }
+    }
+  },
+  {
+    "button": "Side6",
+    "action": {
+      "Keyboard": {
+        "key": "KbF18"
+      }
+    }
+  },
+  {
+    "button": "Side7",
+    "action": {
+      "Keyboard": {
+        "key": "KbF19"
+      }
+    }
+  },
+  {
+    "button": "Side8",
+    "action": {
+      "Keyboard": {
+        "key": "KbF20"
+      }
+    }
+  },
+  {
+    "button": "Side9",
+    "action": {
+      "Keyboard": {
+        "key": "KbF21"
+      }
+    }
+  },
+  {
+    "button": "Side10",
+    "action": {
+      "Mouse": {
+        "Button": [
+          "Mouse4",
+          0
+        ]
+      }
+    }
+  },
+  {
+    "button": "Side11",
+    "action": {
+      "Keyboard": {
+        "key": "KbF23"
+      }
+    }
+  },
+  {
+    "button": "Side12",
+    "action": {
+      "Keyboard": {
+        "key": "KbF24"
+      }
+    }
+  },
+  {
+    "button": "Side12",
+    "action": {
+      "Keyboard": {
+        "key": "KbS",
+        "modifiers": [
+          "LShift",
+          "LGui"
+        ]
+      }
+    }
+  },
+  {
+    "button": "Side11",
+    "action": {
+      "Keyboard": {
+        "interval_ms": 1,
+        "key": "KbA"
+      }
+    }
+  },
+  {
+    "button": "Side9",
+    "action": {
+      "Mouse": {
+        "Button": [
+          "UScroll",
+          1
+        ]
+      }
+    }
+  }
+]
