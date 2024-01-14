@@ -186,7 +186,7 @@ pub(crate) enum KeyMod {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[repr(u8)]
 pub(crate) enum UsbKbScanCode {
-    Disabled = 0x00, // Note 9; This is what synapse sets when you disable a mouse button.
+    Disabled = 0x00, // Note 9; Effectively no-op
     KeyboardErrorRollOver = 0x01, // Note 9
     KbPOSTFail = 0x02, // Note 9
     KbErrorUndefined = 0x03, // Note 9
@@ -280,12 +280,12 @@ pub(crate) enum UsbKbScanCode {
     Keypad3 = 0x5B,     // and PageDn
     Keypad4 = 0x5C,     // and Left Arrow
     Keypad5 = 0x5D,
-    Keypad6 = 0x5E,          // and Right Arrow
-    Keypad7 = 0x5F,          // and Home
-    Keypad8 = 0x60,          // and Up Arrow
-    Keypad9 = 0x61,          // and PageUp
-    Keypad0 = 0x62,          // and Insert
-    KeypadDot = 0x63,        // and Delete
+    Keypad6 = 0x5E,     // and Right Arrow
+    Keypad7 = 0x5F,     // and Home
+    Keypad8 = 0x60,     // and Up Arrow
+    Keypad9 = 0x61,     // and PageUp
+    Keypad0 = 0x62,     // and Insert
+    KeypadDot = 0x63,   // and Delete
     KbNonUSBackslash = 0x64, // Non-US \ and | Note 3 and 6
     KbApplication = 0x65, // The key left of the right control key and opens a context menu in windows, aka "compose", Note 10
     KbPower = 0x66,       // Note 9
@@ -361,7 +361,7 @@ pub(crate) enum UsbKbScanCode {
     KbRShift = 0xE5,
     KbRAlt = 0xE6,
     KbRGUI = 0xE7, // Note 10 and 24
-                   // 232-255	E8-FF	Reserved
+    // 232-255	E8-FF	Reserved
 }
 
 // 1.	Usage of keys is not modified by the state of the Control, Alt, Shift or Num Lock keys. That is, a key does not send extra codes to compensate for the state of any Control, Alt, Shift or Num Lock keys.
@@ -394,13 +394,13 @@ pub(crate) fn generate_message(func: &Function) -> [u8; 91] {
     // Byte number: Comment
     // 0: Report ID: Needed strictly for the API, doesn't actually get sent to the mouse in this position, so everything else is basically off by one.
     message[0] = 0;
-    // 1: I think either this or 3 might be an extended checksum
+    // 1: Not sure what purpose this is for a send report (if any,) but on a get report it seems to be a status indicator
     message[1] = 0;
     // 2: Seems to be part of the checksum calculation. Basically this and byte 89 (byte 88 in the actual usb message) need to xor to zero or else the message is (I think) considered corrupted and is dropped.
     message[2] = 0x1f;
-    // 3: Same as byte 1
+    // 3: Always seems to be zero. Possibly extended checksum? Note the checksum byte at 89 is just before another zero byte.
     message[3] = 0;
-    // 4-9: No idea what any of this is. Internal packet header or packet magic possibly? None of the numbers make any sense to me.
+    // 4-9: No idea what any of this is. Internal packet header or packet magic possibly? None of the numbers make any sense to me, but they never seem to vary either.
     let dunno = [0x00, 0x00, 0x0a, 0x02, 0x0c, 0x01];
     message[4..=9].clone_from_slice(&dunno);
     let func_bytes = func.generate_string();
