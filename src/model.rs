@@ -18,7 +18,7 @@ pub(crate) enum Action {
 }
 
 impl Function {
-    pub(crate) fn generate_string(&self) -> [u8; 9] {
+    pub(crate) fn generate_parameter_string(&self) -> [u8; 9] {
         let mut string = [0u8; 9];
         string[0] = self.button as _;
 
@@ -398,13 +398,11 @@ pub(crate) fn generate_message(func: &Function) -> [u8; 91] {
     message[1] = 0;
     // 2: Seems to be part of the checksum calculation. Basically this and byte 89 (byte 88 in the actual usb message) need to xor to zero or else the message is (I think) considered corrupted and is dropped.
     message[2] = 0x1f;
-    // 3: Always seems to be zero. Possibly extended checksum? Note the checksum byte at 89 is just before another zero byte.
-    message[3] = 0;
-    // 4-9: No idea what any of this is. Internal packet header or packet magic possibly? None of the numbers make any sense to me, but they never seem to vary either.
-    let dunno = [0x00, 0x00, 0x0a, 0x02, 0x0c, 0x01];
-    message[4..=9].clone_from_slice(&dunno);
-    let func_bytes = func.generate_string();
+    // 3-6: Always seems to be zero. 3 is possibly extended checksum? Note the checksum byte at 89 is just before another zero byte.
+    // 6-9: No idea what any of this is. None of the numbers make any sense to me. All button assignment packets have these exact bytes. For everything else these are different.
+    message[6..=9].clone_from_slice(&[0x0a, 0x02, 0x0c, 0x01]);
     // 10-18: Pretty much the meat of the payload. Basically tells the mouse what button to bind to what action.
+    let func_bytes = func.generate_parameter_string();
     message[10..=18].clone_from_slice(&func_bytes);
     // iterate through everything after the checksum seed and xor all bytes together
     message[89] = message[3..].iter().fold(0, |acc, x| acc ^ x);
