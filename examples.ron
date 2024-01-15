@@ -1,0 +1,223 @@
+#![enable(unwrap_variant_newtypes)]
+[(
+  button: SenStageDown,
+  action: sensitivity(StageUp),
+), (
+  button: SenStageDown,
+  action: sensitivity(StageDown),
+), (
+  button: SenStageDown,
+  action: sensitivity(CycleUpStage),
+), (
+  button: SenStageDown,
+  action: sensitivity(CycleDownStage),
+), (
+  button: SenStageDown,
+  action: sensitivity(Clutch(
+    x: 30000,
+    y: 100,
+  )),
+), (
+  button: SenStageDown,
+  action: sensitivity(Clutch(
+    x: 30000,
+    y: 30000,
+  )),
+), (
+  button: SenStageDown,
+  action: sensitivity(Clutch(
+    x: 800,
+    y: 800,
+  )),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbGrave,
+    modifiers: [LShift, RShift],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbGrave,
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [RShift, RAlt, RControl],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [RShift, RAlt, RControl, RGui, LShift, LAlt, LControl, LGui],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [RAlt],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [LAlt],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [RControl],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [RShift],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+    modifiers: [LShift],
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbEquals,
+  ),
+), (
+  button: Side12,
+  action: disable,
+), (
+  button: Side1,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: Side11,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: Side11,
+  action: keyboard(
+    key: KbA,
+    interval_ms: 50,
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbF1,
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbF12,
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbF13,
+  ),
+), (
+  button: Side12,
+  action: keyboard(
+    key: KbF24,
+  ),
+), (
+  button: RClick,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: LScroll,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: RScroll,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: UScroll,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: DScroll,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: MClick,
+  action: keyboard(
+    key: KbA,
+  ),
+), (
+  button: Side11,
+  action: mouse(
+    button: Mouse4,
+  ),
+), (
+  button: Side12,
+  action: mouse(
+    button: Mouse5,
+  ),
+), (
+  button: Side12,
+  action: mouse(
+    button: Mouse5,
+    interval_ms: 1000,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: RClick,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: RClick,
+    interval_ms: 1000,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: RClick,
+    interval_ms: 500,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: RClick,
+    interval_ms: 333,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: RClick,
+    interval_ms: 250,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: RClick,
+    interval_ms: 50,
+  ),
+), (
+  button: RClick,
+  action: mouse(
+    button: LClick,
+  ),
+), (
+  button: Side1,
+  action: hypershift,
+)]
